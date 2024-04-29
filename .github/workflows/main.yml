@@ -14,7 +14,8 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pyinstaller pygame  # 确保同时安装pygame
+        pip install pyinstaller pygame ttkthemes
+        pip install -r requirements.txt
     - name: Build with PyInstaller
       run: pyinstaller --onefile --windowed --hidden-import=pygame,ttkthemes --debug=all gui.py
     - name: Upload Artifacts
