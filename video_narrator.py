@@ -19,6 +19,7 @@ class ImageAnalyzer:
 
         # 使用ElevenLabs API密钥
         set_api_key(api_key=elevenlabs_api_key)
+        self.elevenlabs_voice_key = elevenlabs_api_key
         self.elevenlabs_voice_id = elevenlabs_voice_id
 
     def encode_image(self, image_path):
@@ -31,9 +32,8 @@ class ImageAnalyzer:
                     raise
                 time.sleep(0.1)
 
-
     def generate_new_line(self, base64_image):
-        return [
+        data = [
             {
                 "role": "user",
                 "content": [
@@ -45,6 +45,9 @@ class ImageAnalyzer:
                 ],
             },
         ]
+        self.logger.info("🤖 AI is analyzing the image...")
+        self.logger.info(data)
+        return data
 
     def analyze_image(self, base64_image, script):
         response = self.client.chat.completions.create(
@@ -65,7 +68,8 @@ class ImageAnalyzer:
         return response.choices[0].message.content
 
     def _play_audio(self, text):
-        audio = generate(text, voice=self.elevenlabs_voice_id)
+        self.logger.info('开始处理音频...')
+        audio = generate(text, voice=self.elevenlabs_voice_id, api_key=self.elevenlabs_voice_key)
         unique_id = base64.urlsafe_b64encode(os.urandom(30)).decode("utf-8").rstrip("=")
         dir_path = os.path.join("narration", unique_id)
         os.makedirs(dir_path, exist_ok=True)
@@ -73,12 +77,15 @@ class ImageAnalyzer:
         with open(file_path, "wb") as f:
             f.write(audio)
         self.latest_audio_path = file_path  # 更新最新的音频文件路径
+        self.logger.info('音频处理完成')
+        self.logger.info(f'音频文件路径: {file_path}')
         return file_path
 
     def get_latest_audio_path(self):
         return self.latest_audio_path
 
     def main(self):
+        global gpt_message
         script = []
         frames_dir = os.path.join(os.getcwd(), "video_frames")
         frame_files = sorted(os.listdir(frames_dir))
@@ -89,8 +96,9 @@ class ImageAnalyzer:
                 continue
             base64_image = self.encode_image(frame_path)
             self.logger.info("👀 David is watching...")
-            analysis = self.analyze_image(base64_image, script=script)
+            gpt_message = self.analyze_image(base64_image, script=script)
             self.logger.info("🎙️ David says:")
-            self.logger.info(analysis)
-            script = script + [{"role": "assistant", "content": analysis}]
+            self.logger.info(gpt_message)
+            script = script + [{"role": "assistant", "content": gpt_message}]
             time.sleep(5)
+        self._play_audio(gpt_message)
