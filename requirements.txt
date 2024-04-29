@@ -25,8 +25,8 @@ Pillow==10.1.0
 prompt-toolkit==3.0.41
 ptyprocess==0.7.0
 pure-eval==0.2.2
-pydantic~=1.8.2
-pydantic_core==2.10.1
+pydantic
+pydantic_core
 Pygments==2.16.1
 pygame
 requests==2.31.0
