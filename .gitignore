@@ -1,0 +1,14 @@
+.env
+/venv
+/narration
+/frames/*
+!/frames/.gitkeep### Example user template template
+### Example user template
+
+# IntelliJ project files
+.idea
+*.iml
+out
+gen
+build/
+dist/
