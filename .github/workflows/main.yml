@@ -10,11 +10,11 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: '3.8'
+        python-version: '3.11'  # 修改Python版本到3.11
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pyinstaller
+        pip install pyinstaller pygame  # 确保同时安装pygame
     - name: Build with PyInstaller
       run: pyinstaller --onefile --windowed --hidden-import=pygame --debug=all gui.py
     - name: Upload Artifacts
