@@ -1,4 +1,6 @@
 # coding: utf-8
+import shutil
+
 import cv2
 import os
 from PIL import Image
@@ -9,6 +11,20 @@ import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
+@staticmethod
+def clear_directory(directory):
+    """
+    清空指定的目录，如果目录中有文件或其他目录，则将它们全部删除。
+    """
+    for filename in os.listdir(directory):
+        file_path = os.path.join(directory, filename)
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        except Exception as e:
+            print(f'删除 {file_path} 时发生错误。原因: {e}')
 def extract_frames(video_path, folder="video_frames", frame_interval=2):
     """
     从视频中提取帧并保存为图像文件。
@@ -22,6 +38,11 @@ def extract_frames(video_path, folder="video_frames", frame_interval=2):
         # 创建帧文件夹（如果不存在的话）
         frames_dir = os.path.join(os.getcwd(), folder)
         os.makedirs(frames_dir, exist_ok=True)
+        if not os.path.exists(frames_dir):
+            os.makedirs(frames_dir)
+        else:
+            # 如果目录已存在，清空该目录
+            clear_directory(frames_dir)
         logging.info(f"帧图像将被保存在: {frames_dir}")
 
         # 读取视频文件
