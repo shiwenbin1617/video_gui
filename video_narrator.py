@@ -17,6 +17,7 @@ class ImageAnalyzer:
         else:
             self.client = OpenAI(api_key=openai_api_key)
 
+
     def encode_image(self, image_path):
         while True:
             try:
@@ -28,7 +29,7 @@ class ImageAnalyzer:
                 time.sleep(0.1)
 
     def generate_new_line(self, base64_image):
-        return [
+        data = [
             {
                 "role": "user",
                 "content": [
@@ -40,6 +41,9 @@ class ImageAnalyzer:
                 ],
             },
         ]
+        self.logger.info("🤖 AI is analyzing the image...")
+        self.logger.info(data)
+        return data
 
     def analyze_image(self, base64_image, script):
         try:
@@ -81,6 +85,7 @@ class ImageAnalyzer:
         self.latest_audio_path = speech_file_path
         self.logger.info("🎵 Audio saved to: %s", speech_file_path)
 
+
     def get_latest_audio_path(self):
         return self.latest_audio_path
 
@@ -96,7 +101,6 @@ class ImageAnalyzer:
         for index, frame_file in enumerate(frame_files):
             frame_path = os.path.join(frames_dir, frame_file)
             base64_image = self.encode_image(frame_path)
-
             # 为了提高日志的可读性，我们可以在日志中添加文件索引和名称
             self.logger.info(f"👀 正在分析第 {index + 1}/{len(frame_files)} 个文件: {frame_file}...")
             analysis = self.analyze_image(base64_image, script=script)
