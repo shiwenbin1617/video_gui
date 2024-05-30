@@ -46,16 +46,16 @@ class VideoProcessorUI:
         self.input_frame = ttk.Frame(paned_window)
         paned_window.add(self.input_frame, weight=1)
 
-        # # 下方的日志区域
-        # log_frame = ttk.Labelframe(paned_window, text="日志", padding="10")
-        # paned_window.add(log_frame, weight=1)
+        # 下方的日志区域
+        log_frame = ttk.Labelframe(paned_window, text="日志", padding="10")
+        paned_window.add(log_frame, weight=1)
 
-        # log_text = scrolledtext.ScrolledText(log_frame, state='disabled', height=10)
-        # log_text.pack(fill=tk.BOTH, expand=True)
+        log_text = scrolledtext.ScrolledText(log_frame, state='disabled', height=10)
+        log_text.pack(fill=tk.BOTH, expand=True)
 
-        # text_handler = TextHandler(log_text)
-        # text_handler.setFormatter(formatter)
-        # logger.addHandler(text_handler)
+        text_handler = TextHandler(log_text)
+        text_handler.setFormatter(formatter)
+        logger.addHandler(text_handler)
 
         self.create_input_widgets()
 
@@ -82,7 +82,7 @@ class VideoProcessorUI:
 
     def start_processing(self):
         try:
-            frame_interval = int(self.entries["帧提取的时间间隔（秒）:"].get())
+            frame_interval = float(self.entries["帧提取的时间间隔（秒）:"].get())
             video_path = self.entries["视频文件路径:"].get()
             openai_api_key = self.entries["OpenAI API密钥:"].get()
             voice_id = self.entries["声音ID:"].get()
