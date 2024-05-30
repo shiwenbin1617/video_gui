@@ -30,26 +30,28 @@ class ImageAnalyzer:
 
     def generate_new_line(self, base64_image):
         data = [
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": "Describe this image"},
-                    {
-                        "type": "image_url",
-                        "image_url": f"data:image/jpeg;base64,{base64_image}",
-                    },
-                ],
-            },
+        {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": "Describe this image"},
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/jpeg;base64,{base64_image}"
+                    }
+                },
+            ],
+        },
         ]
         self.logger.info("🤖 AI is analyzing the image...")
-        self.logger.info(data)
+        # self.logger.info(data)
         return data
 
     def analyze_image(self, base64_image, script):
         try:
-            self.logger.info(f"正在发送的图像数据: {self.generate_new_line(base64_image)}")
+            # self.logger.info(f"正在发送的图像数据: {self.generate_new_line(base64_image)}")
             response = self.client.chat.completions.create(
-                model="gpt-4-vision-preview",
+                model="gpt-4o",
                 messages=[
                              {
                                  "role": "system",
@@ -73,17 +75,120 @@ class ImageAnalyzer:
             self.logger.error(f"分析图像时发生错误: {e}")
             self.logger.debug(f"错误详情:{response}")
 
-    def _openai_play_audio(self, text, voice="alloy"):
+    def _openai_play_audio_with_chunking(self, text, voice="alloy"):
         self.logger.info("🔊 Playing audio...")
-        response = self.client.audio.speech.create(
-            model="tts-1",
-            voice=voice,
-            input=text
-        )
-        speech_file_path = os.path.join("narration", "speech.mp3")
-        response.stream_to_file(speech_file_path)
-        self.latest_audio_path = speech_file_path
-        self.logger.info("🎵 Audio saved to: %s", speech_file_path)
+        narration_dir = os.path.join(os.getcwd(), "narration")
+        if not os.path.exists(narration_dir):
+            os.makedirs(narration_dir)
+            
+        # 将文本分成多个小块,每个不超过 4096 个字符
+        chunks = [text[i:i+4096] for i in range(0, len(text), 4096)]
+        
+        # 用于存储生成的音频文件路径
+        self.latest_audio_path = []
+        
+        # 检查 voice 参数是否有效
+        valid_voices = ['nova', 'shimmer', 'echo', 'onyx', 'fable', 'alloy']
+        if voice not in valid_voices:
+            self.logger.error(f"无效的语音选择: {voice}. 将使用默认值 'alloy'.")
+            voice = 'alloy'
+        
+        for chunk in chunks:
+            self.logger.info(f"正在生成第 {len(self.latest_audio_path) + 1} 个音频文件片段...")
+            try:
+                response = self.client.audio.speech.create(
+                    model="tts-1",
+                    voice=voice,
+                    input=chunk,
+                )
+            except Exception as e:
+                self.logger.error(f"生成音频文件片段时发生错误: {e}")
+                continue
+            
+            # 生成新的音频文件路径
+            speech_file_index = len(self.latest_audio_path) + 1
+            speech_file_path = os.path.join("narration", f"speech_{speech_file_index}.mp3")
+            
+            # 检查文件是否已经存在
+            if not os.path.exists(speech_file_path):
+                self.logger.info(f"正在保存第 {speech_file_index} 个音频文件片段到 {speech_file_path}...")
+                try:
+                    with open(speech_file_path, "wb") as f:
+                        f.write(response.content)
+                except Exception as e:
+                    self.logger.error(f"保存音频文件片段 {speech_file_path} 时发生错误: {e}")
+                    continue
+                self.latest_audio_path.append(speech_file_path)
+                self.logger.info("🎵 Audio saved to: %s", speech_file_path)
+            else:
+                self.logger.info(f"文件 {speech_file_path} 已存在, 跳过生成.")
+                self.latest_audio_path.append(speech_file_path)
+            
+        self.logger.info("🎯 All audio files generated.")
+        
+        # 如果只有一个音频文件,就直接返回该文件路径
+        if len(self.latest_audio_path) == 1:
+            self.logger.info(f"🎉 Final audio file saved to: {self.latest_audio_path[0]}")
+            return self.latest_audio_path[0]
+        
+        # 合并所有音频文件
+        final_audio_path = os.path.join("narration", "final_narration.mp3")
+        self.logger.info(f"正在合并 {len(self.latest_audio_path)} 个音频文件到 {final_audio_path}...")
+        self._merge_audio_files(self.latest_audio_path, final_audio_path)
+        
+        self.logger.info(f"🎉 Final audio file saved to: {final_audio_path}")
+        return final_audio_path
+
+
+
+
+
+
+
+
+    def _merge_audio_files(self, input_files, output_file):
+        """将多个音频文件合并为一个文件"""
+        import subprocess
+
+        # 创建一个包含所有音频文件路径的文本文件
+        concat_file = os.path.join("narration", "concat.txt")
+        try:
+            with open(concat_file, "w") as f:
+                for file_path in input_files:
+                    f.write(f"file '{file_path}'\n")
+        except Exception as e:
+            self.logger.error(f"创建 concat.txt 文件时发生错误: {e}")
+            return
+
+        # 使用 ffmpeg 命令合并音频文件
+        try:
+            subprocess.run(["ffmpeg", "-f", "concat", "-safe", "0", "-i", concat_file, "-c", "copy", output_file], check=True)
+        except subprocess.CalledProcessError as e:
+            self.logger.error(f"合并音频文件时发生错误: {e}")
+            return
+
+        # 删除临时文件
+        self._delete_files([concat_file] + input_files, max_retries=3, retry_delay=0.5)
+
+
+    def _delete_files(self, file_paths, max_retries=3, retry_delay=0.5):
+        """尝试删除文件,如果失败则重试"""
+        for file_path in file_paths:
+            num_retries = 0
+            while num_retries < max_retries:
+                try:
+                    os.remove(file_path)
+                    break
+                except OSError as e:
+                    self.logger.error(f"删除文件 {file_path} 时发生错误: {e}")
+                    num_retries += 1
+                    if num_retries < max_retries:
+                        self.logger.info(f"正在重试删除文件 {file_path}...")
+                        time.sleep(retry_delay)
+                    else:
+                        self.logger.info(f"已成功删除文件 {file_path}")
+
+
 
 
     def get_latest_audio_path(self):
@@ -116,6 +221,6 @@ class ImageAnalyzer:
 
         # 检查ai_message是否为空，避免尝试播放空消息
         if ai_message:
-            self._openai_play_audio(text=ai_message,voice=voice)
+            self._openai_play_audio_with_chunking(text=ai_message,voice=voice)
         else:
             self.logger.info("没有生成任何音频消息。")

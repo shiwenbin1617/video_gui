@@ -46,16 +46,16 @@ class VideoProcessorUI:
         self.input_frame = ttk.Frame(paned_window)
         paned_window.add(self.input_frame, weight=1)
 
-        # 下方的日志区域
-        log_frame = ttk.Labelframe(paned_window, text="日志", padding="10")
-        paned_window.add(log_frame, weight=1)
+        # # 下方的日志区域
+        # log_frame = ttk.Labelframe(paned_window, text="日志", padding="10")
+        # paned_window.add(log_frame, weight=1)
 
-        log_text = scrolledtext.ScrolledText(log_frame, state='disabled', height=10)
-        log_text.pack(fill=tk.BOTH, expand=True)
+        # log_text = scrolledtext.ScrolledText(log_frame, state='disabled', height=10)
+        # log_text.pack(fill=tk.BOTH, expand=True)
 
-        text_handler = TextHandler(log_text)
-        text_handler.setFormatter(formatter)
-        logger.addHandler(text_handler)
+        # text_handler = TextHandler(log_text)
+        # text_handler.setFormatter(formatter)
+        # logger.addHandler(text_handler)
 
         self.create_input_widgets()
 
@@ -79,11 +79,6 @@ class VideoProcessorUI:
         audio_path_label = ttk.Label(self.input_frame, textvariable=self.audio_path)
         audio_path_label.grid(row=8, column=1, padx=5, pady=5, sticky=tk.W)
 
-        play_audio_button = ttk.Button(self.input_frame, text="播放最新音频", command=self.play_latest_audio)
-        play_audio_button.grid(row=7, column=0, columnspan=3, padx=5, pady=5, sticky=tk.W)
-
-        open_folder_button = ttk.Button(self.input_frame, text="预览", command=self.open_audio_folder)
-        open_folder_button.grid(row=7, column=2, padx=5, pady=5, sticky=tk.W)
 
     def start_processing(self):
         try:
