@@ -75,13 +75,14 @@ class ImageAnalyzer:
             self.logger.error(f"分析图像时发生错误: {e}")
             self.logger.debug(f"错误详情:{response}")
 
+
     def _openai_play_audio_with_chunking(self, text, voice="alloy"):
         self.logger.info("🔊 Playing audio...")
         narration_dir = os.path.join(os.getcwd(), "narration")
         if not os.path.exists(narration_dir):
             os.makedirs(narration_dir)
             
-        # 将文本分成多个小块,每个不超过 4096 个字符
+        # 将文本分成多个小块，每个不超过 4096 个字符
         chunks = [text[i:i+4096] for i in range(0, len(text), 4096)]
         
         # 用于存储生成的音频文件路径
@@ -107,7 +108,8 @@ class ImageAnalyzer:
             
             # 生成新的音频文件路径
             speech_file_index = len(self.latest_audio_path) + 1
-            speech_file_path = os.path.join("narration", f"speech_{speech_file_index}.mp3")
+            timestamp = time.strftime("%Y%m%d_%H%M%S")
+            speech_file_path = os.path.join(narration_dir, f"speech_{speech_file_index}_{timestamp}.mp3")
             
             # 检查文件是否已经存在
             if not os.path.exists(speech_file_path):
@@ -126,18 +128,19 @@ class ImageAnalyzer:
             
         self.logger.info("🎯 All audio files generated.")
         
-        # 如果只有一个音频文件,就直接返回该文件路径
+        # 如果只有一个音频文件，就直接返回该文件路径
         if len(self.latest_audio_path) == 1:
             self.logger.info(f"🎉 Final audio file saved to: {self.latest_audio_path[0]}")
             return self.latest_audio_path[0]
         
         # 合并所有音频文件
-        final_audio_path = os.path.join("narration", "final_narration.mp3")
+        final_audio_path = os.path.join(narration_dir, f"final_narration_{timestamp}.mp3")
         self.logger.info(f"正在合并 {len(self.latest_audio_path)} 个音频文件到 {final_audio_path}...")
         self._merge_audio_files(self.latest_audio_path, final_audio_path)
         
         self.logger.info(f"🎉 Final audio file saved to: {final_audio_path}")
         return final_audio_path
+
 
 
 
