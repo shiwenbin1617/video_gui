@@ -9,8 +9,11 @@ from openai import OpenAI
 
 
 class ImageAnalyzer:
-    def __init__(self, openai_api_key, voice_id, base_url=None, logger=None):
+    def __init__(self, openai_api_key, voice_id, base_url=None, logger=None,language="中文"):
         self.latest_audio_path = None
+        self.total_chunks = None
+        self.voice_id = voice_id
+        self.lanuage = language
         self.logger = logger if logger is not None else logging.getLogger(__name__)
         if base_url:
             self.client = OpenAI(api_key=openai_api_key, base_url=base_url)
@@ -55,7 +58,8 @@ class ImageAnalyzer:
                 messages=[
                              {
                                  "role": "system",
-                                 "content": """
+                                 "content": f"""
+                        请使用{self.lanuage}进行回答：
                         You are Sir David Attenborough. Narrate the picture of the human as if it is a nature documentary.
                         Make it snarky and funny. Don't repeat yourself. Make it short. If I do anything remotely interesting, make a big deal about it!
                         """,
@@ -84,6 +88,8 @@ class ImageAnalyzer:
             
         # 将文本分成多个小块，每个不超过 4096 个字符
         chunks = [text[i:i+4096] for i in range(0, len(text), 4096)]
+        self.total_chunks = len(chunks)
+
         
         # 用于存储生成的音频文件路径
         self.latest_audio_path = []
@@ -224,6 +230,6 @@ class ImageAnalyzer:
 
         # 检查ai_message是否为空，避免尝试播放空消息
         if ai_message:
-            self._openai_play_audio_with_chunking(text=ai_message,voice=voice)
+            self._openai_play_audio_with_chunking(text=ai_message,voice=self.voice_id)
         else:
             self.logger.info("没有生成任何音频消息。")

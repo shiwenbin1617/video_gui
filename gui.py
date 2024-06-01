@@ -4,6 +4,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, scrolledtext
 from tkinter import ttk
 import logging
+import pyperclip
 
 import pygame
 from ttkthemes import ThemedTk
@@ -60,34 +61,47 @@ class VideoProcessorUI:
         self.create_input_widgets()
 
     def create_input_widgets(self):
-        labels = ["帧提取的时间间隔（秒）:", "视频文件路径:", "OpenAI API密钥:",'声音ID:',
-                  "OpenAI API的基本URL（可选）:"]
+        labels = ["帧提取的时间间隔（秒）:", "视频文件路径:", "OpenAI API密钥:", "语音ID:", "OpenAI API的基本URL（可选）:", "语言设定:"]
         self.entries = {}
         for i, label in enumerate(labels):
             ttk.Label(self.input_frame, text=label).grid(row=i, column=0, padx=5, pady=5, sticky=tk.W)
-            entry = ttk.Entry(self.input_frame)
-            entry.grid(row=i, column=1, padx=5, pady=5, sticky=(tk.W, tk.E))
-            self.input_frame.columnconfigure(1, weight=1)
-            self.entries[label] = entry
+            if label == "语音ID:":
+                self.voice_options = ['nova', 'shimmer', 'echo', 'onyx', 'fable', 'alloy']
+                self.voice_var = tk.StringVar()
+                self.voice_var.set(self.voice_options[0])
+                self.voice_dropdown = ttk.Combobox(self.input_frame, textvariable=self.voice_var, values=self.voice_options)
+                self.voice_dropdown.grid(row=i, column=1, padx=5, pady=5, sticky=(tk.W, tk.E))
+                self.entries[label] = self.voice_var
+            elif label == "语言设定:":
+                self.language_entry = ttk.Entry(self.input_frame)
+                self.language_entry.grid(row=i, column=1, padx=5, pady=5, sticky=(tk.W, tk.E))
+                self.entries[label] = self.language_entry
+            else:
+                entry = ttk.Entry(self.input_frame)
+                entry.grid(row=i, column=1, padx=5, pady=5, sticky=(tk.W, tk.E))
+                self.input_frame.columnconfigure(1, weight=1)
+                self.entries[label] = entry
 
         ttk.Button(self.input_frame, text="浏览...", command=self.browse_video).grid(row=1, column=2, padx=5, pady=5,
                                                                                      sticky=tk.W)
-        ttk.Button(self.input_frame, text="开始处理", command=self.start_processing).grid(row=6, column=0, columnspan=3,
+        ttk.Button(self.input_frame, text="开始处理", command=self.start_processing).grid(row=7, column=0, columnspan=3,
                                                                                           padx=5, pady=5)
+        self.copy_button = ttk.Button(self.input_frame, text="复制解说词", command=self.copy_latest_audio_content)
+        self.copy_button.grid(row=8, column=0, columnspan=3, padx=5, pady=5)
 
         self.audio_path = tk.StringVar()  # 使用StringVar来动态更新标签内容
         audio_path_label = ttk.Label(self.input_frame, textvariable=self.audio_path)
-        audio_path_label.grid(row=8, column=1, padx=5, pady=5, sticky=tk.W)
-
+        audio_path_label.grid(row=9, column=1, padx=5, pady=5, sticky=tk.W)
 
     def start_processing(self):
         try:
             frame_interval = float(self.entries["帧提取的时间间隔（秒）:"].get())
             video_path = self.entries["视频文件路径:"].get()
             openai_api_key = self.entries["OpenAI API密钥:"].get()
-            voice_id = self.entries["声音ID:"].get()
+            voice_id = self.entries["语音ID:"].get()
             base_url = self.entries["OpenAI API的基本URL（可选）:"].get() if self.entries[
                 "OpenAI API的基本URL（可选）:"].get() else None
+            language = self.entries["语言设定:"].get() if self.entries["语言设定:"].get() else "中文"
 
             logger.info("开始处理视频...")
             extract_frames(video_path=video_path, frame_interval=frame_interval)
@@ -96,30 +110,14 @@ class VideoProcessorUI:
             self.analyzer = ImageAnalyzer(openai_api_key=openai_api_key,
                                           voice_id=voice_id,
                                           base_url=base_url,
-                                          logger=logger)
+                                          logger=logger,
+                                          language=language)
             self.analyzer.main(voice=voice_id)
             self.audio_path.set(self.analyzer.get_latest_audio_path())  # 更新标签内容为最新的音频文件路径
             logger.info("帧图像处理完成")
         except Exception as e:
             logger.error(f"处理过程中发生错误: {e}")
             messagebox.showerror("错误", f"处理过程中发生错误: {e}")
-
-    def play_latest_audio(self):
-        # 检查self.analyzer是否已经被正确初始化
-        if hasattr(self, 'analyzer') and self.analyzer.get_latest_audio_path():
-            pygame.mixer.music.load(self.analyzer.get_latest_audio_path())
-            pygame.mixer.music.play()
-            self.audio_path.set(self.analyzer.get_latest_audio_path())  # 更新标签内容为最新的音频文件路径
-        else:
-            messagebox.showinfo("提示", "没有可播放的音频。")
-
-    def open_audio_folder(self):
-        # 检查self.analyzer是否已经被正确初始化
-        if hasattr(self, 'analyzer') and self.analyzer.get_latest_audio_path():
-            folder_path = os.path.dirname(self.analyzer.get_latest_audio_path())
-            os.startfile(folder_path)  # 打开音频文件所在的文件夹
-        else:
-            messagebox.showinfo("提示", "没有可打开的文件夹。")
 
     def browse_video(self):
         filepath = filedialog.askopenfilename(
